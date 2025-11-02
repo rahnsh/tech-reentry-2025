@@ -1,0 +1,1 @@
+print("Hello, engineer! Week 1 is underway.")
