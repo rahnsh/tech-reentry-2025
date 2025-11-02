@@ -1,0 +1,55 @@
+import argparse
+import logging
+from pathlib import Path
+from app import TaskStore
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="tasks",
+        description="Simple task automation CLI (Week 2)"
+    )
+    p.add_argument("--db", default=str(Path(__file__).with_name("tasks.json")),
+                   help="Path to tasks DB (JSON)")
+    p.add_argument("--log-level", default="INFO",
+                   choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    addp = sub.add_parser("add", help="Add a new task")
+    addp.add_argument("title", help="Task title")
+
+    sub.add_parser("list", help="List tasks")
+
+    donep = sub.add_parser("done", help="Mark a task done by id")
+    donep.add_argument("id", type=int)
+
+    clr = sub.add_parser("clear", help="Clear tasks")
+    clr.add_argument("--done-only", action="store_true", help="Only clear completed tasks")
+
+    return p
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log_level))
+    store = TaskStore(Path(args.db))
+
+    if args.cmd == "add":
+        t = store.add(args.title)
+        print(f"Added [{t.id}] {t.title}")
+    elif args.cmd == "list":
+        tasks = store.list()
+        if not tasks:
+            print("No tasks yet.")
+        else:
+            for t in tasks:
+                mark = "✔" if t.done else " "
+                print(f"[{t.id}] [{mark}] {t.title}")
+    elif args.cmd == "done":
+        t = store.mark_done(args.id)
+        print(f"Marked done: [{t.id}] {t.title}")
+    elif args.cmd == "clear":
+        n = store.clear(done_only=args.done_only)
+        print(f"Removed {n} task(s)")
+
+if __name__ == "__main__":
+    main()
